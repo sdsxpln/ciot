@@ -12153,7 +12153,7 @@ IC-09995</description>
 <part name="SUPPLY2" library="supply2" deviceset="+4.1V" device=""/>
 <part name="+3V2" library="supply1" deviceset="+3V3" device=""/>
 <part name="VDD2" library="supply1" deviceset="VDD" device=""/>
-<part name="R1" library="resistor" deviceset="R-EU_" device="R0603"/>
+<part name="R1" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
 <part name="SUPPLY3" library="supply2" deviceset="+4.1V" device=""/>
 <part name="IC1" library="micro-stm_v3" deviceset="STM32L051K*U" device="" technology="8"/>
 <part name="GND1" library="supply1" deviceset="GND" device=""/>
@@ -12171,8 +12171,8 @@ IC-09995</description>
 <part name="R11" library="resistor" deviceset="R-EU_" device="R0603" value="4.7k"/>
 <part name="VDD5" library="supply1" deviceset="VDD" device=""/>
 <part name="C1" library="resistor" deviceset="C-EU" device="C0603K" value="0.01u"/>
-<part name="C5" library="resistor" deviceset="C-EU" device="C0603K" value="1u"/>
-<part name="C6" library="resistor" deviceset="C-EU" device="C0603K" value="1u"/>
+<part name="C5" library="resistor" deviceset="C-EU" device="C0603K" value="0.01u"/>
+<part name="C6" library="resistor" deviceset="C-EU" device="C0603K" value="0.01u"/>
 <part name="GND10" library="supply1" deviceset="GND" device=""/>
 <part name="VDD6" library="supply1" deviceset="VDD" device=""/>
 <part name="VDD7" library="supply1" deviceset="VDD" device=""/>
@@ -12188,10 +12188,10 @@ IC-09995</description>
 <part name="VDD11" library="supply1" deviceset="VDD" device=""/>
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
 <part name="GND16" library="supply1" deviceset="GND" device=""/>
-<part name="R13" library="resistor" deviceset="R-EU_" device="R0603"/>
+<part name="R13" library="resistor" deviceset="R-EU_" device="R0603" value="10k"/>
 <part name="U$3" library="crystal" deviceset="FC-255" device=""/>
-<part name="C9" library="resistor" deviceset="C-EU" device="C0603K" value="22p"/>
-<part name="C10" library="resistor" deviceset="C-EU" device="C0603K" value="22p"/>
+<part name="C9" library="resistor" deviceset="C-EU" device="C0603K" value="10p"/>
+<part name="C10" library="resistor" deviceset="C-EU" device="C0603K" value="10p"/>
 <part name="GND17" library="supply1" deviceset="GND" device=""/>
 <part name="GND24" library="supply1" deviceset="GND" device=""/>
 <part name="TP2" library="testpad" deviceset="TP" device="B1,27"/>
@@ -12208,6 +12208,9 @@ IC-09995</description>
 <part name="C11" library="resistor" deviceset="C-EU" device="C0603K" value="0.01u"/>
 <part name="GND22" library="supply1" deviceset="GND" device=""/>
 <part name="VDD13" library="supply1" deviceset="VDD" device=""/>
+<part name="C12" library="resistor" deviceset="C-EU" device="C0603K" value="1u"/>
+<part name="VDD14" library="supply1" deviceset="VDD" device=""/>
+<part name="GND26" library="supply1" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -12310,6 +12313,9 @@ IC-09995</description>
 </instance>
 <instance part="VDD12" gate="G$1" x="157.48" y="111.76"/>
 <instance part="VDD13" gate="G$1" x="48.26" y="111.76"/>
+<instance part="C12" gate="G$1" x="243.84" y="157.48"/>
+<instance part="VDD14" gate="G$1" x="243.84" y="165.1"/>
+<instance part="GND26" gate="1" x="243.84" y="147.32"/>
 </instances>
 <busses>
 </busses>
@@ -12431,6 +12437,11 @@ IC-09995</description>
 <wire x1="68.58" y1="93.98" x2="48.26" y2="93.98" width="0.1524" layer="91"/>
 <wire x1="48.26" y1="93.98" x2="48.26" y2="109.22" width="0.1524" layer="91"/>
 <pinref part="VDD13" gate="G$1" pin="VDD"/>
+</segment>
+<segment>
+<pinref part="C12" gate="G$1" pin="1"/>
+<pinref part="VDD14" gate="G$1" pin="VDD"/>
+<wire x1="243.84" y1="160.02" x2="243.84" y2="162.56" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -12582,6 +12593,11 @@ IC-09995</description>
 <pinref part="GND25" gate="1" pin="GND"/>
 <wire x1="160.02" y1="101.6" x2="157.48" y2="101.6" width="0.1524" layer="91"/>
 <wire x1="157.48" y1="101.6" x2="157.48" y2="99.06" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="C12" gate="G$1" pin="2"/>
+<pinref part="GND26" gate="1" pin="GND"/>
+<wire x1="243.84" y1="149.86" x2="243.84" y2="152.4" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="RESET" class="0">

@@ -34,7 +34,7 @@
 <layer number="24" name="bOrigins" color="15" fill="1" visible="yes" active="yes"/>
 <layer number="25" name="tNames" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="26" name="bNames" color="7" fill="1" visible="yes" active="yes"/>
-<layer number="27" name="tValues" color="7" fill="1" visible="no" active="yes"/>
+<layer number="27" name="tValues" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="28" name="bValues" color="7" fill="1" visible="no" active="yes"/>
 <layer number="29" name="tStop" color="7" fill="3" visible="no" active="yes"/>
 <layer number="30" name="bStop" color="7" fill="6" visible="no" active="yes"/>
@@ -4738,7 +4738,10 @@ design rules under a new name.</description>
 <element name="U$1" library="sakuraio" package="SCM-DF40-50DS" value="SCM-40" x="5" y="17" smashed="yes" rot="R180">
 <attribute name="NAME" x="1.555" y="24.4" size="1.27" layer="25"/>
 </element>
-<element name="IC2" library="v-reg" package="SOT25" value="TAR5SB30" x="2.3" y="54.8" rot="R180"/>
+<element name="IC2" library="v-reg" package="SOT25" value="TAR5SB30" x="2.3" y="54.8" smashed="yes" rot="R180">
+<attribute name="NAME" x="4.705" y="52.795" size="1.27" layer="25" rot="R180"/>
+<attribute name="VALUE" x="4.205" y="58.229" size="1.27" layer="27" rot="R180"/>
+</element>
 <element name="R5" library="resistor" package="R0603" value="1k" x="30.2" y="56" smashed="yes" rot="R180">
 <attribute name="NAME" x="33.839" y="58.361" size="1.27" layer="25" rot="R180"/>
 <attribute name="VALUE" x="31.089" y="58.032" size="1.27" layer="27" rot="R180"/>
@@ -4752,7 +4755,7 @@ design rules under a new name.</description>
 <attribute name="VALUE" x="7.111" y="22.468" size="1.27" layer="27"/>
 </element>
 <element name="R8" library="resistor" package="R0603" value="4.7k" x="8" y="26.6" smashed="yes" rot="R180">
-<attribute name="NAME" x="5.139" y="27.989" size="1.27" layer="25" rot="R270"/>
+<attribute name="NAME" x="5.139" y="28.489" size="1.27" layer="25" rot="R270"/>
 <attribute name="VALUE" x="8.889" y="28.632" size="1.27" layer="27" rot="R180"/>
 </element>
 <element name="C4" library="resistor" package="C0603K" value="1u" x="20" y="56.5" smashed="yes">
@@ -4761,11 +4764,11 @@ design rules under a new name.</description>
 </element>
 <element name="U$4" library="con-hirose" package="ZX62R-B-5P" value="ZX62R-B-5P" x="20" y="61" rot="R270"/>
 <element name="L0" library="resistor" package="L2012C" value="" x="5.5" y="50.5" smashed="yes" rot="R180">
-<attribute name="NAME" x="5.984" y="47.639" size="1.27" layer="25"/>
+<attribute name="NAME" x="7.084" y="47.839" size="1.27" layer="25"/>
 <attribute name="VALUE" x="6.516" y="52.659" size="1.27" layer="27" rot="R180"/>
 </element>
 <element name="C2" library="resistor" package="C0603K" value="1u" x="8.5" y="51" smashed="yes" rot="R270">
-<attribute name="NAME" x="7.75" y="50" size="1.016" layer="25" rot="R270"/>
+<attribute name="NAME" x="6" y="51.55" size="1.016" layer="25"/>
 <attribute name="VALUE" x="6.85" y="51.8" size="1.016" layer="27" rot="R270"/>
 </element>
 <element name="C3" library="resistor" package="C0603K" value="0.01u" x="10" y="51" smashed="yes" rot="R270">
@@ -4780,7 +4783,7 @@ design rules under a new name.</description>
 <attribute name="NAME" x="9.611" y="31.889" size="1.27" layer="25"/>
 <attribute name="VALUE" x="10.611" y="28.468" size="1.27" layer="27"/>
 </element>
-<element name="R1" library="resistor" package="R0603" value="" x="5" y="8.5" rot="R180"/>
+<element name="R1" library="resistor" package="R0603" value="10k" x="5" y="8.5" rot="R180"/>
 <element name="IC1" library="micro-stm_v3" package="UFQFPN32" value="STM32L051K8U" x="12" y="19" rot="R270"/>
 <element name="J1" library="SparkFun-Connectors" package="JST-2-SMD" value="S2B-PH-SM4-TB" x="4.9" y="43" rot="R180">
 <attribute name="PROD_ID" value="CONN-11443" x="4.9" y="43" size="1.778" layer="27" rot="R180" display="off"/>
@@ -4790,25 +4793,25 @@ design rules under a new name.</description>
 </element>
 <element name="R2" library="resistor" package="R0603" value="4.7k" x="18" y="23" smashed="yes">
 <attribute name="NAME" x="20.611" y="22.389" size="1.27" layer="25"/>
-<attribute name="VALUE" x="17.111" y="20.968" size="1.27" layer="27"/>
+<attribute name="VALUE" x="24.211" y="22.368" size="1.27" layer="27"/>
 </element>
 <element name="R3" library="resistor" package="R0603" value="4.7k" x="18" y="18" smashed="yes">
 <attribute name="NAME" x="20.861" y="17.389" size="1.27" layer="25"/>
-<attribute name="VALUE" x="17.111" y="15.968" size="1.27" layer="27"/>
+<attribute name="VALUE" x="24.111" y="17.368" size="1.27" layer="27"/>
 </element>
 <element name="R11" library="resistor" package="R0603" value="4.7k" x="18" y="15.5" smashed="yes">
 <attribute name="NAME" x="19.861" y="14.889" size="1.27" layer="25"/>
-<attribute name="VALUE" x="17.111" y="13.468" size="1.27" layer="27"/>
+<attribute name="VALUE" x="23.911" y="14.868" size="1.27" layer="27"/>
 </element>
 <element name="C1" library="resistor" package="C0603K" value="0.01u" x="18" y="14" smashed="yes">
 <attribute name="NAME" x="20.2" y="13.4" size="1.016" layer="25"/>
-<attribute name="VALUE" x="17.2" y="12.35" size="1.016" layer="27"/>
+<attribute name="VALUE" x="23.9" y="13.25" size="1.016" layer="27"/>
 </element>
-<element name="C5" library="resistor" package="C0603K" value="1u" x="11" y="14" smashed="yes">
+<element name="C5" library="resistor" package="C0603K" value="0.01u" x="11" y="14" smashed="yes">
 <attribute name="NAME" x="8.95" y="12.15" size="1.016" layer="25"/>
 <attribute name="VALUE" x="10.2" y="12.35" size="1.016" layer="27"/>
 </element>
-<element name="C6" library="resistor" package="C0603K" value="1u" x="18" y="25"/>
+<element name="C6" library="resistor" package="C0603K" value="0.01u" x="18" y="25"/>
 <element name="U$2" library="chips" package="LPS25H" value="LPS25H" x="42.5" y="49.5">
 <attribute name="DIGIKEY" value="497-15070-1-ND" x="42.5" y="49.5" size="1.778" layer="27" display="off"/>
 </element>
@@ -4817,19 +4820,19 @@ design rules under a new name.</description>
 <attribute name="NAME" x="39.85" y="45.95" size="1.016" layer="25" rot="R90"/>
 <attribute name="VALUE" x="41.15" y="48.7" size="1.016" layer="27" rot="R90"/>
 </element>
-<element name="R13" library="resistor" package="R0603" value="" x="18" y="20.5" smashed="yes" rot="R180">
+<element name="R13" library="resistor" package="R0603" value="10k" x="18" y="20.5" smashed="yes" rot="R180">
 <attribute name="NAME" x="20.361" y="20.139" size="1.27" layer="25"/>
-<attribute name="VALUE" x="18.889" y="22.532" size="1.27" layer="27" rot="R180"/>
+<attribute name="VALUE" x="24.211" y="20.168" size="1.27" layer="27"/>
 </element>
 <element name="U$3" library="crystal" package="FC-255" value="FC-255" x="13" y="26" smashed="yes" rot="R90">
 <attribute name="NAME" x="15.845" y="22.8925" size="1.016" layer="25" ratio="18" rot="R90"/>
 <attribute name="VALUE" x="15.54" y="23.1425" size="0.8128" layer="27" ratio="10" rot="R90"/>
 </element>
-<element name="C9" library="resistor" package="C0603K" value="22p" x="9.6" y="28.9" smashed="yes" rot="R180">
+<element name="C9" library="resistor" package="C0603K" value="10p" x="9.6" y="28.9" smashed="yes" rot="R180">
 <attribute name="NAME" x="6.9" y="30.7" size="1.016" layer="25" rot="R270"/>
 <attribute name="VALUE" x="10.4" y="30.55" size="1.016" layer="27" rot="R180"/>
 </element>
-<element name="C10" library="resistor" package="C0603K" value="22p" x="10.7" y="26" smashed="yes" rot="R90">
+<element name="C10" library="resistor" package="C0603K" value="10p" x="10.7" y="26" smashed="yes" rot="R90">
 <attribute name="NAME" x="10.5" y="24.35" size="1.016" layer="25" rot="R180"/>
 <attribute name="VALUE" x="12.35" y="25.2" size="1.016" layer="27" rot="R90"/>
 </element>
@@ -4867,6 +4870,7 @@ design rules under a new name.</description>
 </element>
 <element name="C11" library="resistor" package="C0603K" value="0.01u" x="1.4" y="50.8" rot="R270"/>
 <element name="U$5" library="sakuraio" package="LOGO-SAKURAIO-3" value="" x="28.4" y="0.8"/>
+<element name="C12" library="resistor" package="C0603K" value="1u" x="7.9" y="6.7" rot="R270"/>
 </elements>
 <signals>
 <signal name="VDD">
@@ -4908,7 +4912,6 @@ design rules under a new name.</description>
 <wire x1="10.125" y1="14" x2="10.125" y2="11.75" width="0.2" layer="1"/>
 <wire x1="10.125" y1="11.75" x2="10.125" y2="8.125" width="0.2" layer="1"/>
 <wire x1="10.125" y1="8.125" x2="9.5" y2="7.5" width="0.2" layer="1"/>
-<wire x1="9.5" y1="7.5" x2="5.15" y2="7.5" width="0.2" layer="1"/>
 <wire x1="5.15" y1="7.5" x2="4.15" y2="8.5" width="0.2" layer="1"/>
 <wire x1="7.25" y1="17.5" x2="7.25" y2="14" width="0.2" layer="1"/>
 <wire x1="7.25" y1="14" x2="7.05" y2="13.8" width="0.2" layer="1"/>
@@ -4937,7 +4940,6 @@ design rules under a new name.</description>
 <wire x1="22.6" y1="35.6" x2="20" y2="33" width="0.2" layer="1"/>
 <wire x1="20" y1="33" x2="20" y2="27" width="0.2" layer="1"/>
 <wire x1="20" y1="27" x2="19.3" y2="26.3" width="0.2" layer="1"/>
-<wire x1="19.3" y1="26.3" x2="18.9" y2="26.3" width="0.2" layer="1"/>
 <wire x1="18.2" y1="26.3" x2="17.6" y2="26.3" width="0.2" layer="1"/>
 <wire x1="17.6" y1="26.3" x2="17.125" y2="25.825" width="0.2" layer="1"/>
 <wire x1="17.125" y1="25.825" x2="17.125" y2="25" width="0.2" layer="1"/>
@@ -4982,7 +4984,11 @@ design rules under a new name.</description>
 <wire x1="17.3" y1="28.2" x2="18.2" y2="27.3" width="0.2" layer="16"/>
 <wire x1="18.2" y1="27.3" x2="18.2" y2="26.3" width="0.2" layer="16"/>
 <via x="18.2" y="26.3" extent="1-16" drill="0.35"/>
-<wire x1="18.2" y1="26.3" x2="18.9" y2="26.3" width="0.2" layer="1"/>
+<wire x1="18.2" y1="26.3" x2="19.3" y2="26.3" width="0.2" layer="1"/>
+<contactref element="C12" pad="1"/>
+<wire x1="5.15" y1="7.5" x2="7.9" y2="7.5" width="0.2" layer="1"/>
+<wire x1="9.5" y1="7.5" x2="7.9" y2="7.5" width="0.2" layer="1"/>
+<wire x1="7.9" y1="7.5" x2="7.9" y2="7.575" width="0.2" layer="1"/>
 </signal>
 <signal name="+4.1V">
 <contactref element="U$1" pad="48"/>
@@ -5195,6 +5201,7 @@ design rules under a new name.</description>
 <via x="1.9" y="48" extent="1-16" drill="0.35"/>
 <via x="1.7" y="60" extent="1-16" drill="0.35"/>
 <via x="8.5" y="29.9" extent="1-16" drill="0.35"/>
+<contactref element="C12" pad="2"/>
 </signal>
 <signal name="PA0_AD0">
 <contactref element="R7" pad="2"/>
