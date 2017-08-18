@@ -1,15 +1,14 @@
 /**
   ******************************************************************************
-  * File Name          : main.h
-  * Description        : This file contains the common defines of the application
+  * @file    x_nucleo_iks01a2.h
+  * @author  MEMS Application Team
+  * @version V4.0.0
+  * @date    1-May-2017
+  * @brief   This file contains definitions for the x_nucleo_iks01a2.c
   ******************************************************************************
-  ** This notice applies to any and all portions of this file
-  * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
-  * inserted by the user or by software development tools
-  * are owned by their respective copyright owners.
+  * @attention
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -35,46 +34,81 @@
   *
   ******************************************************************************
   */
+
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
-  /* Includes ------------------------------------------------------------------*/
+#ifndef __X_NUCLEO_IKS01A2_H
+#define __X_NUCLEO_IKS01A2_H
 
-/* USER CODE BEGIN Includes */
-#include "x_nucleo_iks01a1_pressure.h"
-#include "x_nucleo_iks01a1_temperature.h"
-/* USER CODE END Includes */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* Private define ------------------------------------------------------------*/
 
-#define AD_BATTERY_Pin GPIO_PIN_0
-#define AD_BATTERY_GPIO_Port GPIOA
-#define GPS_ENABLE_Pin GPIO_PIN_1
-#define GPS_ENABLE_GPIO_Port GPIOA
-#define LPS25H_INT_Pin GPIO_PIN_2
-#define LPS25H_INT_GPIO_Port GPIOA
-#define SAKURA_WAKE_IN_Pin GPIO_PIN_0
-#define SAKURA_WAKE_IN_GPIO_Port GPIOB
-#define SAKURA_WAKE_OUT_Pin GPIO_PIN_1
-#define SAKURA_WAKE_OUT_GPIO_Port GPIOB
-#define V_USB_Pin GPIO_PIN_6
-#define V_USB_GPIO_Port GPIOB
 
-/* USER CODE BEGIN Private defines */
+/* Includes ------------------------------------------------------------------*/
 
-/* USER CODE END Private defines */
+#include "stm32l0xx_hal.h"
 
-void _Error_Handler(char *, int);
+#include "accelerometer.h"
+#include "gyroscope.h"
+#include "magnetometer.h"
+#include "humidity.h"
+#include "temperature.h"
+#include "pressure.h"
 
-#define Error_Handler() _Error_Handler(__FILE__, __LINE__)
+/** @addtogroup BSP BSP
+ * @{
+ */
+
+/** @addtogroup X_NUCLEO_IKS01A2 X_NUCLEO_IKS01A2
+ * @{
+ */
+
+/** @addtogroup X_NUCLEO_IKS01A2_IO IO
+ * @{
+ */
+
+/** @addtogroup X_NUCLEO_IKS01A2_IO_Public_Constants Public constants
+ * @{
+ */
+
+/* Timing samples for L0 with SYSCLK 32MHz set in SystemClock_Config() */
+#define NUCLEO_I2C_EXPBD_TIMING_100KHZ       0x10A13E56 /* Analog Filter ON, Rise Time 400ns, Fall Time 100ns */
+#define NUCLEO_I2C_EXPBD_TIMING_400KHZ       0x00B1112E /* Analog Filter ON, Rise Time 250ns, Fall Time 100ns */
+
+#define NUCLEO_I2C_EXPBD_TIMEOUT_MAX    0x1000 /*<! The value of the maximal timeout for BUS waiting loops */
+
 
 /**
   * @}
-  */ 
+  */
+
+/** @addtogroup X_NUCLEO_IKS01A2_IO_Public_FunctionPrototypes Public function prototypes
+ * @{
+ */
+
+DrvStatusTypeDef Sensor_IO_Init( void );
 
 /**
   * @}
-*/ 
+  */
 
-#endif /* __MAIN_H */
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+/**
+  * @}
+  */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __X_NUCLEO_IKS01A2_H */
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
