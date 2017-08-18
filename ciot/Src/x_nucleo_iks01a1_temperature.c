@@ -64,6 +64,13 @@ static LPS25HB_T_Data_t LPS25HB_T_0_Data; // Temperature - sensor 1 LPS25H/B on 
  * @}
  */
 
+/** @addtogroup X_NUCLEO_IKS01A1_TEMPERATURE_Private_FunctionPrototypes Imported function prototypes
+ * @{
+ */
+
+/* Sensor IO functions */
+extern DrvStatusTypeDef Sensor_IO_Init( void );
+
 /** @addtogroup X_NUCLEO_IKS01A1_TEMPERATURE_Private_FunctionPrototypes Private function prototypes
  * @{
  */
