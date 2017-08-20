@@ -13,6 +13,8 @@
 #include <bsp_pressure.h>
 #include <bsp_temperature.h>
 
+extern ADC_HandleTypeDef hadc;
+
 static PRESSURE_Drv_t *LPS25HB_P_handle = NULL;
 static TEMPERATURE_Drv_t *LPS25HB_T_handle = NULL;
 
@@ -21,6 +23,7 @@ int gps_index =0;
 uint8_t gps_active =false;
 
 float lat=0.0f, lng=0.0f;
+float battery_voltage = 4.2f;
 
 void ciot_init(){
     //Initialize LPS25HB
@@ -35,14 +38,39 @@ void ciot_init(){
         _Error_Handler(__FILE__, __LINE__);
     }
 
+    if (HAL_ADC_Start(&hadc) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
     GPS_POWER_ON();
     conio_init();
+
+    for(int i=0; i<10; i++){
+        if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
+        {
+            Error_Handler();
+        }
+        HAL_Delay(10);
+    }
 }
 
 void ciot_main(){
     for(;;){
         float press, temp;
         parse_gps();
+
+        if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
+        {
+            Error_Handler();
+        }
+        /* Check if the continuous conversion of regular channel is finished */
+        if ((HAL_ADC_GetState(&hadc) & HAL_ADC_STATE_REG_EOC) == HAL_ADC_STATE_REG_EOC)
+        {
+            __IO uint32_t v = HAL_ADC_GetValue(&hadc);
+            battery_voltage = v / 333.3f;
+        }
+
         if( BSP_PRESSURE_Get_Press(LPS25HB_P_handle, (float *)&press) == COMPONENT_OK && BSP_TEMPERATURE_Get_Temp(LPS25HB_T_handle, (float *)&temp) == COMPONENT_OK ){
 
         }
