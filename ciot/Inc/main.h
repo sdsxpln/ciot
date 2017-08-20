@@ -41,8 +41,7 @@
   /* Includes ------------------------------------------------------------------*/
 
 /* USER CODE BEGIN Includes */
-#include "x_nucleo_iks01a1_pressure.h"
-#include "x_nucleo_iks01a1_temperature.h"
+
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/

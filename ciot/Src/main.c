@@ -40,8 +40,7 @@
 #include "stm32l0xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-static void *LPS25HB_P_handle = NULL;
-static void *LPS25HB_T_handle = NULL;
+#include "ciot.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -106,26 +105,14 @@ int main(void)
   MX_ADC_Init();
 
   /* USER CODE BEGIN 2 */
-  if (BSP_PRESSURE_Init(LPS25HB_P_0, &LPS25HB_P_handle) == COMPONENT_ERROR || BSP_TEMPERATURE_Init(LPS25HB_T_0, &LPS25HB_T_handle) == COMPONENT_ERROR)
-  {
-      _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (BSP_PRESSURE_Sensor_Enable(LPS25HB_P_handle) == COMPONENT_ERROR || BSP_TEMPERATURE_Sensor_Enable(LPS25HB_T_handle) == COMPONENT_ERROR)
-  {
-      _Error_Handler(__FILE__, __LINE__);
-  }
+  ciot_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  ciot_main();
   while (1)
   {
-      float press, temp;
-      BSP_PRESSURE_Get_Press(LPS25HB_P_handle, (float *)&press);
-      BSP_TEMPERATURE_Get_Temp(LPS25HB_T_handle, (float *)&temp);
-
-      HAL_Delay(1000);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */

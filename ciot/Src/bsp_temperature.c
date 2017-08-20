@@ -36,7 +36,7 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "x_nucleo_iks01a1_temperature.h"
+#include "bsp_temperature.h"
 
 
 
