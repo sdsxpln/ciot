@@ -2,7 +2,7 @@
  * ciot.c
  *
  *  Created on: 2017/08/20
- *      Author: spira
+ *      Author: SpiralRay
  */
 
 #include "ciot.h"
@@ -10,10 +10,12 @@
 #include <ctype.h>
 #include "uart_support.h"
 
-#include <bsp_pressure.h>
-#include <bsp_temperature.h>
+#include "bsp_pressure.h"
+#include "bsp_temperature.h"
+#include "sakuraio.h"
 
 extern ADC_HandleTypeDef hadc;
+extern I2C_HandleTypeDef hi2c1;
 
 static PRESSURE_Drv_t *LPS25HB_P_handle = NULL;
 static TEMPERATURE_Drv_t *LPS25HB_T_handle = NULL;
@@ -26,6 +28,27 @@ float lat=0.0f, lng=0.0f;
 float battery_voltage = 4.2f;
 
 void ciot_init(){
+
+    SAKURAIO_POWER_ON();
+
+    if (HAL_ADC_Start(&hadc) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    GPS_POWER_ON();
+    conio_init();
+
+    SakuraIO_Init(&hi2c1);
+
+    for(int i=0; i<100; i++){
+        if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
+        {
+            Error_Handler();
+        }
+        HAL_Delay(10);
+    }
+
     //Initialize LPS25HB
     if (BSP_PRESSURE_Init(LPS25HB_P_0, (void **)&LPS25HB_P_handle) == COMPONENT_ERROR || BSP_TEMPERATURE_Init(LPS25HB_T_0, (void **)&LPS25HB_T_handle) == COMPONENT_ERROR)
     {
@@ -38,27 +61,21 @@ void ciot_init(){
         _Error_Handler(__FILE__, __LINE__);
     }
 
-    if (HAL_ADC_Start(&hadc) != HAL_OK)
-    {
-        Error_Handler();
+    //Waiting to come online
+    for(;;){
+        if( (SakuraIO_GetConnectionStatus() & 0x80) == 0x80 ) break;
+        HAL_Delay(1000);
     }
-
-    GPS_POWER_ON();
-    conio_init();
-
-    for(int i=0; i<10; i++){
-        if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
-        {
-            Error_Handler();
-        }
-        HAL_Delay(10);
-    }
+    //uint8_t signal = SakuraIO_GetSignalQuality();
 }
 
 void ciot_main(){
     for(;;){
         float press, temp;
-        parse_gps();
+        for(int i=0;i<10;i++){
+            parse_gps();
+            HAL_Delay(100);
+        }
 
         if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
         {
@@ -74,7 +91,11 @@ void ciot_main(){
         if( BSP_PRESSURE_Get_Press(LPS25HB_P_handle, (float *)&press) == COMPONENT_OK && BSP_TEMPERATURE_Get_Temp(LPS25HB_T_handle, (float *)&temp) == COMPONENT_OK ){
 
         }
-        HAL_Delay(100);
+        SakuraIO_EnqueueFloat(1, lat, 0);
+        SakuraIO_EnqueueFloat(2, lng, 0);
+        SakuraIO_EnqueueFloat(5, temp, 0);
+        SakuraIO_EnqueueFloat(6, press, 0);
+        SakuraIO_Send();
     }
 }
 

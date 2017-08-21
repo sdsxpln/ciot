@@ -51,6 +51,7 @@ void SVC_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
 void ADC1_COMP_IRQHandler(void);
+void I2C1_IRQHandler(void);
 
 #ifdef __cplusplus
 }
