@@ -337,12 +337,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPS_ENABLE_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LPS25H_INT_Pin */
-  GPIO_InitStruct.Pin = LPS25H_INT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(LPS25H_INT_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : SAKURA_WAKE_IN_Pin */
   GPIO_InitStruct.Pin = SAKURA_WAKE_IN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -352,15 +346,25 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : SAKURA_WAKE_OUT_Pin */
   GPIO_InitStruct.Pin = SAKURA_WAKE_OUT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SAKURA_WAKE_OUT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : REED_SWITCH_Pin */
+  GPIO_InitStruct.Pin = REED_SWITCH_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(REED_SWITCH_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : V_USB_Pin */
   GPIO_InitStruct.Pin = V_USB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(V_USB_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 }
 
