@@ -19,6 +19,7 @@ typedef struct{
         uint32_t distance;
         float battery_voltage;
         uint32_t rtc_cnt;
+        uint32_t status;
 } CiotBuffer;
 
 #define CIOT_BUFFER_SIZE 20

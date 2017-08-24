@@ -347,7 +347,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : SAKURA_WAKE_OUT_Pin */
   GPIO_InitStruct.Pin = SAKURA_WAKE_OUT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(SAKURA_WAKE_OUT_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : REED_SWITCH_Pin */
@@ -381,6 +381,7 @@ void _Error_Handler(char * file, int line)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+  NVIC_SystemReset();
   while(1) 
   {
   }

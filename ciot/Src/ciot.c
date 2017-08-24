@@ -123,6 +123,7 @@ void ciot_main(){
     CiotBuffer buff;
     CiotBuffer send_buff;
     uint8_t flag_transmit = 0;
+    uint32_t prev_distance = 0;
 
     for(;;){
 
@@ -151,8 +152,11 @@ void ciot_main(){
                         SakuraIO_EnqueueFloat(5, send_buff.temp, 0);
                         SakuraIO_EnqueueFloat(6, send_buff.press, 0);
                         SakuraIO_EnqueueUint32(7, send_buff.distance, 0);
+
                         SakuraIO_EnqueueFloat(10, send_buff.battery_voltage, 0);
-                        SakuraIO_EnqueueUint32(11, send_buff.rtc_cnt, 0);
+
+                        SakuraIO_EnqueueUint32(20, send_buff.status, 0);
+                        SakuraIO_EnqueueUint32(21, send_buff.rtc_cnt, 0);
 
                         if( SakuraIO_Send() == CMD_ERROR_NONE){
                             status_queue = CHANNEL_TRANSMIT_BUSY;
@@ -181,12 +185,22 @@ void ciot_main(){
 
         __disable_irq();
         buff.rtc_cnt = prev_cnt = rtc_cnt;
-        buff.lat = lat;
-        buff.lng = lng;
         buff.speed = speed;
         buff.distance = distance;
         __enable_irq();
-        ciot_enqueue(&buff);
+
+        //if( prev_distance != buff.distance ){
+        if( 1 ){
+            buff.lat = lat;
+            buff.lng = lng;
+            buff.status = 0x00;
+            if( HAL_GPIO_ReadPin(V_USB_GPIO_Port, V_USB_Pin) == GPIO_PIN_SET ){
+                buff.status |= 0x01;
+            }
+
+            ciot_enqueue(&buff);
+        }
+        prev_distance = buff.distance;
 
 
         if( buff.battery_voltage > 3.35f ){
@@ -205,6 +219,8 @@ void ciot_main(){
             if( LPS25HB_DeActivate(LPS25HB_P_handle) != LPS25HB_OK ){
                 Error_Handler();
             }
+
+            HAL_NVIC_DisableIRQ(RTC_IRQn);
 
             //TODO : Enter STOP Mode
             for(;;);
@@ -267,7 +283,7 @@ void parse_gps(){
                         int num_token = split(gps_line, ',', tp, 20);
 
                         //if GPRMC status is Active
-                        if(num_token==13 && tp[2][0]=='A'){
+                        if(tp[2][0]=='A' && num_token > 5 ){
                             //tp[3]: Latitude
                             //tp[5]: Lngitude
                             char *p = tp[3];
