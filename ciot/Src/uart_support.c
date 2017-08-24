@@ -296,7 +296,9 @@ void USARTx_IRQHandler(void)
         if (tempRX_Head == tempRX_Tail) {
             /* Overflow MAX size Situation */
             /* Disable the UART Receive interrupt */
-            UARTx->CR1 &= ~(USART_CR1_RXNEIE);
+            //UARTx->CR1 &= ~(USART_CR1_RXNEIE);
+            //(&USARTx_Buf)->RX_Tail = 0;
+            //(&USARTx_Buf)->RX_Head = 0;
         }else{
             (&USARTx_Buf)->RX[(&USARTx_Buf)->RX_Head] = data;
             (&USARTx_Buf)->RX_Head = tempRX_Head;

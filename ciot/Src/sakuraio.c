@@ -167,6 +167,10 @@ uint8_t SakuraIO_EnqueueFloat(uint8_t ch, float value, uint64_t offset){
   return SakuraIO_EnqueueTxRaw(ch, 'f', 4, (uint8_t *)&value, offset);
 }
 
+uint8_t SakuraIO_EnqueueDouble(uint8_t ch, double value, uint64_t offset){
+  return SakuraIO_EnqueueTxRaw(ch, 'd', 4, (uint8_t *)&value, offset);
+}
+
 uint8_t SakuraIO_EnqueueByte(uint8_t ch, uint8_t value[8], uint64_t offset){
   return SakuraIO_EnqueueTxRaw(ch, 'b', 8, (uint8_t *)value, offset);
 }
@@ -250,4 +254,79 @@ uint8_t SakuraIO_GetRxQueueLength(uint8_t *available, uint8_t *queued){
 
 uint8_t SakuraIO_ClearRx(){
   return SakuraIO_ExecuteCommand(CMD_RX_CLEAR, 0, NULL, NULL, NULL);
+}
+
+/* Operation command */
+
+uint16_t SakuraIO_GetProductID(){
+  uint8_t response[2] = {0x00};
+  uint8_t responseLength = 2;
+  uint8_t ret = SakuraIO_ExecuteCommand(CMD_GET_PRODUCT_ID, 0, NULL, &responseLength, response);
+  if(ret != CMD_ERROR_NONE){
+    return 0x00;
+  }
+  return *((uint16_t *)response);
+}
+
+uint8_t SakuraIO_GetUniqueID(char *data){
+  uint8_t response[11] = {0x00};
+  uint8_t responseLength = 10;
+  uint8_t ret = SakuraIO_ExecuteCommand(CMD_GET_UNIQUE_ID, 0, NULL, &responseLength, response);
+  if(ret != CMD_ERROR_NONE){
+    return ret;
+  }
+  for(uint8_t i=0; i<responseLength; i++){
+    data[i] = (char)response[i];
+  }
+  data[responseLength] = 0x00;
+  return ret;
+}
+
+uint8_t SakuraIO_GetFirmwareVersion(char *data){
+  uint8_t response[33] = {0x00};
+  uint8_t responseLength = 32;
+  uint8_t ret = SakuraIO_ExecuteCommand(CMD_GET_FIRMWARE_VERSION, 0, NULL, &responseLength, response);
+  if(ret != CMD_ERROR_NONE){
+    return ret;
+  }
+  for(uint8_t i=0; i<responseLength; i++){
+    data[i] = (char)response[i];
+  }
+  data[responseLength] = 0x00;
+  return ret;
+}
+
+uint8_t SakuraIO_Unlock(){
+  uint8_t request[4] = {0x53, 0x6B, 0x72, 0x61};
+  return SakuraIO_ExecuteCommand(CMD_UNLOCK, 4, request, NULL, NULL);
+}
+
+uint8_t SakuraIO_UpdateFirmware(){
+  return SakuraIO_ExecuteCommand(CMD_UPDATE_FIRMWARE, 0, 0, NULL, NULL);
+}
+
+uint8_t SakuraIO_GetFirmwareUpdateStatus(){
+  uint8_t response[1] = {0x00};
+  uint8_t responseLength = 1;
+  if(SakuraIO_ExecuteCommand(CMD_GET_UPDATE_FIRMWARE_STATUS, 0, 0, &responseLength, response) != CMD_ERROR_NONE){
+      return 0xff;
+  }
+  return response[0];
+}
+
+uint8_t SakuraIO_Reset(){
+  return SakuraIO_ExecuteCommand(CMD_SOFTWARE_RESET, 0, 0, NULL, NULL);
+}
+
+uint8_t SakuraIO_Command_set_power_save_mode(uint8_t mode){
+  return SakuraIO_ExecuteCommand(CMD_SET_POWER_SAVE_MODE, 1, &mode, NULL, NULL);
+}
+
+uint8_t SakuraIO_Command_get_power_save_mode(){
+  uint8_t response[1] = {0x00};
+  uint8_t responseLength = 1;
+  if(SakuraIO_ExecuteCommand(CMD_GET_POWER_SAVE_MODE, 0, 0, &responseLength, response) != CMD_ERROR_NONE){
+      return 0xff;
+  }
+  return response[0];
 }

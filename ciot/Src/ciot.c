@@ -14,10 +14,11 @@
 #include "bsp_temperature.h"
 #include "sakuraio.h"
 
+#include "ciot_queue.h"
+
 extern ADC_HandleTypeDef hadc;
 extern I2C_HandleTypeDef hi2c1;
 extern RTC_HandleTypeDef hrtc;
-extern LPTIM_HandleTypeDef hlptim1;
 
 static PRESSURE_Drv_t *LPS25HB_P_handle = NULL;
 static TEMPERATURE_Drv_t *LPS25HB_T_handle = NULL;
@@ -26,8 +27,7 @@ char gps_line[512];
 int gps_index =0;
 uint8_t gps_active =false;
 
-float lat=0.0f, lng=0.0f;
-float battery_voltage = 4.2f;
+double lat=0.0f, lng=0.0f;
 
 volatile uint32_t rtc_cnt = 0;
 volatile uint32_t reed_cnt = 0;
@@ -37,6 +37,16 @@ volatile uint32_t distance = 0;
 static void RTC_AlarmConfig(void);
 
 void ciot_init(){
+    gps_index =0;
+    gps_active =false;
+    lat=0.0;
+    lng=0.0;
+    rtc_cnt = 0;
+    reed_cnt = 0;
+    speed = 0;
+    distance = 0;
+
+    ciot_queue_init();
 
     SAKURAIO_POWER_ON();
 
@@ -54,14 +64,6 @@ void ciot_init(){
         Error_Handler();
     }
 
-    GPS_POWER_ON();
-    conio_init();
-
-    if (HAL_LPTIM_TimeOut_Start_IT(&hlptim1, 65535, 3277-1) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
     SakuraIO_Init(&hi2c1);
 
     for(int i=0; i<100; i++){
@@ -70,6 +72,12 @@ void ciot_init(){
             Error_Handler();
         }
         HAL_Delay(10);
+    }
+
+    //Wait for sakura.io boot up
+    HAL_Delay(5000);
+    if( SakuraIO_Command_set_power_save_mode(0) != CMD_ERROR_NONE ){
+        Error_Handler();
     }
 
     //Initialize LPS25HB
@@ -88,12 +96,8 @@ void ciot_init(){
     LPS25HB_Set_AvgT(LPS25HB_T_handle, LPS25HB_AVGT_64);
     LPS25HB_Set_Odr(LPS25HB_P_handle, LPS25HB_ODR_25HZ);
 
-    //Waiting to come online
-    for(;;){
-        if( (SakuraIO_GetConnectionStatus() & 0x80) == 0x80 ) break;
-        HAL_Delay(100);
-    }
-    //uint8_t signal = SakuraIO_GetSignalQuality();
+    GPS_POWER_ON();
+    conio_init();
 }
 
 float get_voltage(){
@@ -112,36 +116,96 @@ float get_voltage(){
 
 void ciot_main(){
     uint32_t prev_cnt = rtc_cnt;
+    uint8_t status_queue=CHANNEL_TRANSMIT_FREE;
+    uint8_t status_immediate;
+
+
+    CiotBuffer buff;
+    CiotBuffer send_buff;
+    uint8_t flag_transmit = 0;
+
     for(;;){
-        float press, temp;
 
         do{
-            battery_voltage = 0;
-            for(int i=0;i<50;i++){
-                battery_voltage += get_voltage();
-            }
-            battery_voltage /= 50;
-            BSP_PRESSURE_Get_Press(LPS25HB_P_handle, (float *)&press);
-            BSP_TEMPERATURE_Get_Temp(LPS25HB_T_handle, (float *)&temp);
-            HAL_Delay(1);
-        } while( rtc_cnt - prev_cnt < 5 );
-        prev_cnt = rtc_cnt;
+            parse_gps();
 
-        if( battery_voltage > 3.35f ){
-            SakuraIO_EnqueueUint32(0, speed, 0);
-            SakuraIO_EnqueueFloat(1, lat, 0);
-            SakuraIO_EnqueueFloat(2, lng, 0);
-            SakuraIO_EnqueueFloat(5, temp, 0);
-            SakuraIO_EnqueueFloat(6, press, 0);
-            SakuraIO_EnqueueUint32(7, distance, 0);
-            SakuraIO_EnqueueFloat(10, battery_voltage, 0);
-            SakuraIO_EnqueueUint32(11, rtc_cnt, 0);
-            SakuraIO_Send();
+            buff.battery_voltage = 0;
+            for(int i=0;i<50;i++){
+                buff.battery_voltage += get_voltage();
+            }
+            buff.battery_voltage /= 50;
+            BSP_PRESSURE_Get_Press(LPS25HB_P_handle, (float *)&(buff.press) );
+            BSP_TEMPERATURE_Get_Temp(LPS25HB_T_handle, (float *)&(buff.temp) );
+
+            if( flag_transmit ){
+                if( status_queue == CHANNEL_TRANSMIT_BUSY ){
+                    SakuraIO_GetTxStatus(&status_queue, &status_immediate);
+                }
+
+                if( status_queue == CHANNEL_TRANSMIT_FREE ){
+                    //If queue is not empty
+                    if( ciot_dequeue(&send_buff) == 0 ){
+                        SakuraIO_EnqueueUint32(0, send_buff.speed, 0);
+                        SakuraIO_EnqueueDouble(1, send_buff.lat, 0);
+                        SakuraIO_EnqueueDouble(2, send_buff.lng, 0);
+                        SakuraIO_EnqueueFloat(5, send_buff.temp, 0);
+                        SakuraIO_EnqueueFloat(6, send_buff.press, 0);
+                        SakuraIO_EnqueueUint32(7, send_buff.distance, 0);
+                        SakuraIO_EnqueueFloat(10, send_buff.battery_voltage, 0);
+                        SakuraIO_EnqueueUint32(11, send_buff.rtc_cnt, 0);
+
+                        if( SakuraIO_Send() == CMD_ERROR_NONE){
+                            status_queue = CHANNEL_TRANSMIT_BUSY;
+                        }
+                        else{
+                            status_queue = CHANNEL_TRANSMIT_FAILED;
+                        }
+                    }
+                    else{
+                        flag_transmit = 0;
+                    }
+                }
+                else if( status_queue == CHANNEL_TRANSMIT_FAILED ){
+                    if( SakuraIO_Send() == CMD_ERROR_NONE){
+                        status_queue = CHANNEL_TRANSMIT_BUSY;
+                    }
+                    else{
+                        status_queue = CHANNEL_TRANSMIT_FAILED;
+                    }
+                }
+            }
+
+            HAL_Delay(1);
+
+        } while( rtc_cnt - prev_cnt < 5 );
+
+        __disable_irq();
+        buff.rtc_cnt = prev_cnt = rtc_cnt;
+        buff.lat = lat;
+        buff.lng = lng;
+        buff.speed = speed;
+        buff.distance = distance;
+        __enable_irq();
+        ciot_enqueue(&buff);
+
+
+        if( buff.battery_voltage > 3.35f ){
+            if( ciot_get_queue_count() >= 12 ){
+                flag_transmit = 1;
+            }
         }
         else{
             GPS_POWER_OFF();
+
+            if( SakuraIO_Command_set_power_save_mode(2) != CMD_ERROR_NONE ){
+                Error_Handler();
+            }
             SAKURAIO_POWER_OFF();
-            LPS25HB_DeActivate(LPS25HB_P_handle);
+
+            if( LPS25HB_DeActivate(LPS25HB_P_handle) != LPS25HB_OK ){
+                Error_Handler();
+            }
+
             //TODO : Enter STOP Mode
             for(;;);
         }
@@ -165,6 +229,18 @@ int split(char *str, const char delim, char *token[], int max_item)
     return cnt;
 }
 
+int is_nmea_valid(char *str, int len){
+    uint8_t parity = 0x00;
+    for(int i=1;i<len-3;i++){
+        parity ^= (uint32_t)str[i];
+    }
+
+    if( strtol(str+len-2, 0, 16) == parity ){
+        return 1;
+    }
+    return 0;
+}
+
 void parse_gps(){
     uint8_t c;
     while( (c = getch()) != false){
@@ -179,27 +255,35 @@ void parse_gps(){
 
         if(c=='\n'){
             gps_line[gps_index] = '\0';
+            int len = gps_index;
             gps_index =0;
+            if( len > 5 && gps_line[len-2] == '\r' && gps_line[len-5] == '*' ){
+                gps_line[len-2] = '\0';
+                len -= 2;
 
-            if( gps_line[1] == 'G' && gps_line[2] == 'P' && gps_line[3] == 'R' && gps_line[4] == 'M' && gps_line[5] == 'C' ){
-                char *tp[20];
-                int num_token = split(gps_line, ',', tp, 20);
+                if( gps_line[1] == 'G' && gps_line[2] == 'P' && gps_line[3] == 'R' && gps_line[4] == 'M' && gps_line[5] == 'C' ){
+                    if( is_nmea_valid( gps_line,len) ){
+                        char *tp[20];
+                        int num_token = split(gps_line, ',', tp, 20);
 
-                //if GPRMC status is Active
-                if(num_token==13 && tp[2][0]=='A'){
-                    //tp[3]: Latitude
-                    //tp[5]: Lngitude
-                    char *p = tp[3];
-                    lat = ((int)p[0]-'0')*10 + ((int)p[1]-'0') + atof(p+2)/60;
-                    p = tp[5];
-                    lng = ((int)p[0]-'0')*100 + ((int)p[1]-'0')*10 + ((int)p[2]-'0') + atof(p+3)/60;
-                    gps_active = true;
-                }
-                else{
-                    gps_active = false;
+                        //if GPRMC status is Active
+                        if(num_token==13 && tp[2][0]=='A'){
+                            //tp[3]: Latitude
+                            //tp[5]: Lngitude
+                            char *p = tp[3];
+                            lat = ((int)p[0]-'0')*10 + ((int)p[1]-'0') + atof(p+2)/60;
+                            p = tp[5];
+                            lng = ((int)p[0]-'0')*100 + ((int)p[1]-'0')*10 + ((int)p[2]-'0') + atof(p+3)/60;
+                            gps_active = true;
+                        }
+                        else{
+                            gps_active = false;
+                            lat = lng = 0.0;
+                        }
+                    }
+
                 }
             }
-
         }
     }
 
@@ -277,16 +361,6 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
     speed = reed_cnt;
     reed_cnt = 0;
     distance += speed;
-}
-
-/**
- * @brief  Compare match callback in non blocking mode
- * @param  hlptim : LPTIM handle
- * @retval None
- */
-void HAL_LPTIM_CompareMatchCallback(LPTIM_HandleTypeDef *hlptim)
-{
-    parse_gps();
 }
 
 /**
