@@ -168,7 +168,7 @@ uint8_t SakuraIO_EnqueueFloat(uint8_t ch, float value, uint64_t offset){
 }
 
 uint8_t SakuraIO_EnqueueDouble(uint8_t ch, double value, uint64_t offset){
-  return SakuraIO_EnqueueTxRaw(ch, 'd', 4, (uint8_t *)&value, offset);
+  return SakuraIO_EnqueueTxRaw(ch, 'd', 8, (uint8_t *)&value, offset);
 }
 
 uint8_t SakuraIO_EnqueueByte(uint8_t ch, uint8_t value[8], uint64_t offset){

@@ -27,7 +27,7 @@ char gps_line[512];
 int gps_index =0;
 uint8_t gps_active =false;
 
-double lat=0.0f, lng=0.0f;
+double lat=0.0, lng=0.0;
 
 volatile uint32_t rtc_cnt = 0;
 volatile uint32_t reed_cnt = 0;
