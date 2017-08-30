@@ -105,14 +105,13 @@ int main(void)
   MX_ADC_Init();
 
   /* USER CODE BEGIN 2 */
-  ciot_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  ciot_main();
   while (1)
   {
+    ciot_main();
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */

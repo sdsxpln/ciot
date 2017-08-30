@@ -8,6 +8,7 @@
 #include "ciot.h"
 #include "stm32l0xx_hal.h"
 #include <ctype.h>
+#include <time.h>
 #include "uart_support.h"
 
 #include "bsp_pressure.h"
@@ -30,29 +31,24 @@ uint8_t gps_active =false;
 double lat=0.0, lng=0.0;
 
 volatile uint32_t rtc_cnt = 0;
+volatile time_t unixtime = 0;
+
 volatile uint32_t reed_cnt = 0;
 volatile uint32_t speed = 0;
 volatile uint32_t distance = 0;
 
 static void RTC_AlarmConfig(void);
 
-void ciot_init(){
+int ciot_init(){
     gps_index =0;
     gps_active =false;
     lat=0.0;
     lng=0.0;
     rtc_cnt = 0;
-    reed_cnt = 0;
-    speed = 0;
-    distance = 0;
 
     ciot_queue_init();
 
     SAKURAIO_POWER_ON();
-
-    RTC_AlarmConfig();
-    HAL_NVIC_SetPriority(RTC_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(RTC_IRQn);
 
     if (HAL_ADCEx_Calibration_Start(&hadc, ADC_SINGLE_ENDED) != HAL_OK)
     {
@@ -75,7 +71,12 @@ void ciot_init(){
     }
 
     //Wait for sakura.io boot up
-    HAL_Delay(5000);
+    for(int i=0;i<50;i++){
+        if( HAL_GPIO_ReadPin(SAKURA_WAKE_OUT_GPIO_Port, SAKURA_WAKE_OUT_Pin) == GPIO_PIN_SET ){
+            break;
+        }
+        HAL_Delay(100);
+    }
     if( SakuraIO_Command_set_power_save_mode(0) != CMD_ERROR_NONE ){
         Error_Handler();
     }
@@ -98,19 +99,24 @@ void ciot_init(){
 
     GPS_POWER_ON();
     conio_init();
-}
 
-float get_voltage(){
-    if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
-    {
-        Error_Handler();
+    while(unixtime == 0){
+        parse_gps();
+
+        float v = 0;
+        for(int i=0;i<50;i++){
+            v += get_voltage();
+        }
+        v /= 50;
+        if( v < BATTERY_LOW_VOLTAGE ){
+            return -1;
+        }
     }
-    /* Check if the continuous conversion of regular channel is finished */
-    if ((HAL_ADC_GetState(&hadc) & HAL_ADC_STATE_REG_EOC) == HAL_ADC_STATE_REG_EOC)
-    {
-        uint32_t v = HAL_ADC_GetValue(&hadc);
-        return (float)v *(14.9/4.9*1.8/4096);
-    }
+
+    RTC_AlarmConfig();
+    HAL_NVIC_SetPriority(RTC_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(RTC_IRQn);
+
     return 0;
 }
 
@@ -124,6 +130,16 @@ void ciot_main(){
     CiotBuffer send_buff;
     uint8_t flag_transmit = 0;
     uint32_t prev_distance = 0;
+
+    if( ciot_init() ){
+        goto sleep;
+    }
+
+    __disable_irq();
+    reed_cnt = 0;
+    speed = 0;
+    distance = 0;
+    __enable_irq();
 
     for(;;){
 
@@ -139,7 +155,11 @@ void ciot_main(){
             BSP_TEMPERATURE_Get_Temp(LPS25HB_T_handle, (float *)&(buff.temp) );
 
             if( flag_transmit ){
-                if( status_queue == CHANNEL_TRANSMIT_BUSY ){
+
+                //To avoid the bug sakura.io module
+                /* if( status_queue == CHANNEL_TRANSMIT_BUSY ){ */
+                if( status_queue & CHANNEL_TRANSMIT_BUSY ){
+                    //If previous state is BUSY(transmitting), update the state
                     SakuraIO_GetTxStatus(&status_queue, &status_immediate);
                 }
 
@@ -169,6 +189,7 @@ void ciot_main(){
                         flag_transmit = 0;
                     }
                 }
+                //If transmit failed, re-transmit
                 else if( status_queue == CHANNEL_TRANSMIT_FAILED ){
                     if( SakuraIO_Send() == CMD_ERROR_NONE){
                         status_queue = CHANNEL_TRANSMIT_BUSY;
@@ -183,8 +204,11 @@ void ciot_main(){
 
         } while( rtc_cnt - prev_cnt < 5 );
 
+        sleep:
+
         __disable_irq();
-        buff.rtc_cnt = prev_cnt = rtc_cnt;
+        buff.rtc_cnt = unixtime;
+        prev_cnt = rtc_cnt;
         buff.speed = speed;
         buff.distance = distance;
         __enable_irq();
@@ -197,35 +221,53 @@ void ciot_main(){
             if( HAL_GPIO_ReadPin(V_USB_GPIO_Port, V_USB_Pin) == GPIO_PIN_SET ){
                 buff.status |= 0x01;
             }
+            if( gps_active ){
+                buff.status |= 0x02;
+            }
 
             ciot_enqueue(&buff);
         }
         prev_distance = buff.distance;
 
-
-        if( buff.battery_voltage > 3.35f ){
-            if( ciot_get_queue_count() >= 12 ){
-                flag_transmit = 1;
-            }
+        if( buff.battery_voltage < BATTERY_LOW_VOLTAGE ){
+            break;
         }
-        else{
-            GPS_POWER_OFF();
 
-            if( SakuraIO_Command_set_power_save_mode(2) != CMD_ERROR_NONE ){
-                Error_Handler();
-            }
-            SAKURAIO_POWER_OFF();
-
-            if( LPS25HB_DeActivate(LPS25HB_P_handle) != LPS25HB_OK ){
-                Error_Handler();
-            }
-
-            HAL_NVIC_DisableIRQ(RTC_IRQn);
-
-            //TODO : Enter STOP Mode
-            for(;;);
+        if( ciot_get_queue_count() >= 12 ){
+            flag_transmit = 1;
         }
     }
+
+    UARTx->CR1 &= ~(USART_CR1_RXNEIE);
+    GPS_POWER_OFF();
+
+    if( SakuraIO_Command_set_power_save_mode(2) != CMD_ERROR_NONE ){
+        Error_Handler();
+    }
+    SAKURAIO_POWER_OFF();
+
+    if( LPS25HB_DeActivate(LPS25HB_P_handle) != LPS25HB_OK ){
+        Error_Handler();
+    }
+
+    HAL_NVIC_DisableIRQ(RTC_IRQn);
+
+    //TODO : Enter STOP Mode
+    for(;;);
+}
+
+float get_voltage(){
+    if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* Check if the continuous conversion of regular channel is finished */
+    if ((HAL_ADC_GetState(&hadc) & HAL_ADC_STATE_REG_EOC) == HAL_ADC_STATE_REG_EOC)
+    {
+        uint32_t v = HAL_ADC_GetValue(&hadc);
+        return (float)v *(14.9/4.9*1.8/4096);
+    }
+    return 0;
 }
 
 int split(char *str, const char delim, char *token[], int max_item)
@@ -280,16 +322,31 @@ void parse_gps(){
                 if( gps_line[1] == 'G' && gps_line[2] == 'P' && gps_line[3] == 'R' && gps_line[4] == 'M' && gps_line[5] == 'C' ){
                     if( is_nmea_valid( gps_line,len) ){
                         char *tp[20];
-                        int num_token = split(gps_line, ',', tp, 20);
+                        split(gps_line, ',', tp, 20);
+
+                        if( unixtime == 0 && strlen(tp[9]) == 6 ){
+                            struct tm tm;
+                            uint32_t time = atoi(tp[1]);
+                            uint32_t date = atoi(tp[9]);
+                            tm.tm_year = (date)%100 + 100;
+                            tm.tm_mon = (date/100)%100 - 1;
+                            tm.tm_mday = (date/10000)%100;
+                            tm.tm_hour = (time/10000)%100;
+                            tm.tm_min = (time/100)%100;
+                            tm.tm_sec = (time)%100;
+                            unixtime = mktime(&tm);
+                            rtc_cnt = 0;
+                        }
 
                         //if GPRMC status is Active
-                        if(tp[2][0]=='A' && num_token > 5 ){
+                        if(tp[2][0]=='A'){
                             //tp[3]: Latitude
                             //tp[5]: Lngitude
                             char *p = tp[3];
                             lat = ((int)p[0]-'0')*10 + ((int)p[1]-'0') + atof(p+2)/60;
                             p = tp[5];
                             lng = ((int)p[0]-'0')*100 + ((int)p[1]-'0')*10 + ((int)p[2]-'0') + atof(p+3)/60;
+
                             gps_active = true;
                         }
                         else{
@@ -373,6 +430,9 @@ static void RTC_AlarmConfig(void)
 void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
 {
     rtc_cnt++;
+    if( unixtime > 0 ){
+        unixtime++;
+    }
 
     speed = reed_cnt;
     reed_cnt = 0;
