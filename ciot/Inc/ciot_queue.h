@@ -22,7 +22,7 @@ typedef struct{
         uint32_t status;
 } CiotBuffer;
 
-#define CIOT_BUFFER_SIZE 20
+#define CIOT_BUFFER_SIZE 60
 
 void ciot_queue_init();
 int ciot_enqueue(CiotBuffer *buff);

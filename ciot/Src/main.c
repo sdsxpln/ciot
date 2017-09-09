@@ -88,12 +88,23 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+  /* Enable Power Control clock */
+  __HAL_RCC_PWR_CLK_ENABLE();
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
+
+  /* Disable Prefetch Buffer */
+  __HAL_FLASH_PREFETCH_BUFFER_DISABLE();
+
+  /* Enable Ultra low power mode */
+  HAL_PWREx_EnableUltraLowPower();
+  /* Enable the fast wake up from Ultra low power mode */
+  HAL_PWREx_EnableFastWakeUp();
 
   /* USER CODE END SysInit */
 
@@ -368,7 +379,9 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void GPIO_Init(){
+	MX_GPIO_Init();
+}
 /* USER CODE END 4 */
 
 /**

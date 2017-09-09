@@ -20,6 +20,7 @@
 extern ADC_HandleTypeDef hadc;
 extern I2C_HandleTypeDef hi2c1;
 extern RTC_HandleTypeDef hrtc;
+extern UART_HandleTypeDef huart1;
 
 static PRESSURE_Drv_t *LPS25HB_P_handle = NULL;
 static TEMPERATURE_Drv_t *LPS25HB_T_handle = NULL;
@@ -32,16 +33,22 @@ double lat=0.0, lng=0.0;
 
 volatile uint32_t rtc_cnt = 0;
 volatile time_t unixtime = 0;
+volatile uint32_t last_update = 0;
 
 volatile uint32_t reed_cnt = 0;
 volatile uint32_t speed = 0;
 volatile uint32_t distance = 0;
 
+volatile uint8_t flag_reed  = false;
+volatile uint8_t flag_v_usb = false;
+
 static void RTC_AlarmConfig(void);
+void MSI_Config(void);
 
 int ciot_init(){
     gps_index =0;
     gps_active =false;
+    unixtime = 0;
     lat=0.0;
     lng=0.0;
     rtc_cnt = 0;
@@ -87,6 +94,10 @@ int ciot_init(){
         _Error_Handler(__FILE__, __LINE__);
     }
 
+    if( LPS25HB_Activate(LPS25HB_P_handle) != LPS25HB_OK ){
+        Error_Handler();
+    }
+
     //Enable LPS25HB
     if (BSP_PRESSURE_Sensor_Enable(LPS25HB_P_handle) == COMPONENT_ERROR || BSP_TEMPERATURE_Sensor_Enable(LPS25HB_T_handle) == COMPONENT_ERROR)
     {
@@ -96,6 +107,8 @@ int ciot_init(){
     LPS25HB_Set_AvgP(LPS25HB_P_handle, LPS25HB_AVGP_512);
     LPS25HB_Set_AvgT(LPS25HB_T_handle, LPS25HB_AVGT_64);
     LPS25HB_Set_Odr(LPS25HB_P_handle, LPS25HB_ODR_25HZ);
+
+    SAKURAIO_POWER_OFF();
 
     GPS_POWER_ON();
     conio_init();
@@ -113,9 +126,13 @@ int ciot_init(){
         }
     }
 
+    last_update = unixtime;
+
     RTC_AlarmConfig();
     HAL_NVIC_SetPriority(RTC_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(RTC_IRQn);
+
+    SAKURAIO_POWER_ON();
 
     return 0;
 }
@@ -131,7 +148,10 @@ void ciot_main(){
     uint8_t flag_transmit = 0;
     uint32_t prev_distance = 0;
 
+    uint8_t low_voltage = false;
+
     if( ciot_init() ){
+        low_voltage = true;
         goto sleep;
     }
 
@@ -153,6 +173,10 @@ void ciot_main(){
             buff.battery_voltage /= 50;
             BSP_PRESSURE_Get_Press(LPS25HB_P_handle, (float *)&(buff.press) );
             BSP_TEMPERATURE_Get_Temp(LPS25HB_T_handle, (float *)&(buff.temp) );
+
+            if( unixtime - last_update > SLEEP_TIME ){
+                flag_transmit = 1;
+            }
 
             if( flag_transmit ){
 
@@ -187,6 +211,9 @@ void ciot_main(){
                     }
                     else{
                         flag_transmit = 0;
+                        if( unixtime - last_update > SLEEP_TIME ){
+                            goto sleep;
+                        }
                     }
                 }
                 //If transmit failed, re-transmit
@@ -202,9 +229,7 @@ void ciot_main(){
 
             HAL_Delay(1);
 
-        } while( rtc_cnt - prev_cnt < 5 );
-
-        sleep:
+        } while( rtc_cnt - prev_cnt < SENSE_PERIOD );
 
         __disable_irq();
         buff.rtc_cnt = unixtime;
@@ -213,7 +238,10 @@ void ciot_main(){
         buff.distance = distance;
         __enable_irq();
 
-        //if( prev_distance != buff.distance ){
+        if( prev_distance != buff.distance ){
+            last_update = unixtime;
+        }
+
         if( 1 ){
             buff.lat = lat;
             buff.lng = lng;
@@ -230,30 +258,121 @@ void ciot_main(){
         prev_distance = buff.distance;
 
         if( buff.battery_voltage < BATTERY_LOW_VOLTAGE ){
-            break;
+            low_voltage = true;
         }
 
-        if( ciot_get_queue_count() >= 12 ){
+        if( low_voltage && HAL_GPIO_ReadPin(V_USB_GPIO_Port, V_USB_Pin) == GPIO_PIN_RESET ){
+            goto sleep;
+        }
+
+        if( ciot_get_queue_count() >= THRESHOLD_TRANSMIT_QUEUE_SIZE ){
             flag_transmit = 1;
         }
     }
 
+    sleep:
+
     UARTx->CR1 &= ~(USART_CR1_RXNEIE);
+    HAL_UART_DeInit(&huart1);
     GPS_POWER_OFF();
-
-    if( SakuraIO_Command_set_power_save_mode(2) != CMD_ERROR_NONE ){
-        Error_Handler();
-    }
     SAKURAIO_POWER_OFF();
+    HAL_I2C_DeInit(&hi2c1);
+    HAL_RTC_DeInit(&hrtc);
+    HAL_ADC_DeInit(&hadc);
 
-    if( LPS25HB_DeActivate(LPS25HB_P_handle) != LPS25HB_OK ){
-        Error_Handler();
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Pin = SAKURA_WAKE_IN_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(SAKURA_WAKE_IN_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPS_ENABLE_Pin;
+    HAL_GPIO_Init(GPS_ENABLE_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = SAKURA_WAKE_OUT_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(SAKURA_WAKE_OUT_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = SAKURA_WAKE_OUT_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(SAKURA_WAKE_OUT_GPIO_Port, &GPIO_InitStruct);
+
+    __HAL_RCC_GPIOA_CLK_DISABLE();
+    __HAL_RCC_GPIOC_CLK_DISABLE();
+
+    //---------------------------------------------------------------------------Start LP RUN mode
+
+    MSI_Config();
+
+#if 0
+    /* Enter LP RUN mode */
+    HAL_PWREx_EnableLowPowerRunMode();
+    /* Wait until the system enters LP RUN and the Regulator is in LP mode */
+    while(__HAL_PWR_GET_FLAG(PWR_FLAG_REGLP) == RESET);
+
+    flag_reed  = false;
+    flag_v_usb = false;
+
+    for(;;){
+        if( low_voltage && flag_v_usb )
+            break;
+        if( !low_voltage && flag_reed )
+            break;
     }
 
-    HAL_NVIC_DisableIRQ(RTC_IRQn);
+    /* Exit LP RUN mode */
+    HAL_PWREx_DisableLowPowerRunMode();
+    /* Wait until the system exits LP RUN and the Regulator is in main mode */
+    while(__HAL_PWR_GET_FLAG(PWR_FLAG_REGLP) != RESET);
+#else
+    /* Enable the power down mode during Sleep mode */
+    __HAL_FLASH_SLEEP_POWERDOWN_ENABLE();
 
-    //TODO : Enter STOP Mode
-    for(;;);
+      /*Suspend Tick increment to prevent wakeup by Systick interrupt.
+      Otherwise the Systick interrupt will wake up the device within 1ms (HAL time base)*/
+    HAL_SuspendTick();
+
+    /* Enter Sleep Mode */
+    HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+    /* Resume Tick interrupt if disabled prior to sleep mode entry*/
+    HAL_ResumeTick();
+#endif
+
+    //__HAL_RCC_HSISTOP_DISABLE();
+    //SystemClock_Config();
+
+    //---------------------------------------------------------------------------End LP RUN mode
+
+    NVIC_SystemReset();
+
+    GPIO_Init();
+
+    if (HAL_UART_Init(&huart1) != HAL_OK)
+    {
+        _Error_Handler(__FILE__, __LINE__);
+    }
+
+    if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+    {
+        _Error_Handler(__FILE__, __LINE__);
+    }
+
+    if (HAL_ADC_Init(&hadc) != HAL_OK)
+    {
+        _Error_Handler(__FILE__, __LINE__);
+    }
+    ADC_ChannelConfTypeDef sConfig;
+    sConfig.Channel = ADC_CHANNEL_0;
+    sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+    if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+    {
+        _Error_Handler(__FILE__, __LINE__);
+    }
+
 }
 
 float get_voltage(){
@@ -324,22 +443,23 @@ void parse_gps(){
                         char *tp[20];
                         split(gps_line, ',', tp, 20);
 
-                        if( unixtime == 0 && strlen(tp[9]) == 6 ){
-                            struct tm tm;
-                            uint32_t time = atoi(tp[1]);
-                            uint32_t date = atoi(tp[9]);
-                            tm.tm_year = (date)%100 + 100;
-                            tm.tm_mon = (date/100)%100 - 1;
-                            tm.tm_mday = (date/10000)%100;
-                            tm.tm_hour = (time/10000)%100;
-                            tm.tm_min = (time/100)%100;
-                            tm.tm_sec = (time)%100;
-                            unixtime = mktime(&tm);
-                            rtc_cnt = 0;
-                        }
-
                         //if GPRMC status is Active
                         if(tp[2][0]=='A'){
+
+                        	if( unixtime == 0 && strlen(tp[9]) == 6 ){
+                        		struct tm tm;
+                        		uint32_t time = atoi(tp[1]);
+                        		uint32_t date = atoi(tp[9]);
+                        		tm.tm_year = (date)%100 + 100;
+                        		tm.tm_mon = (date/100)%100 - 1;
+                        		tm.tm_mday = (date/10000)%100;
+                        		tm.tm_hour = (time/10000)%100;
+                        		tm.tm_min = (time/100)%100;
+                        		tm.tm_sec = (time)%100;
+                        		unixtime = mktime(&tm);
+                        		rtc_cnt = 0;
+                        	}
+
                             //tp[3]: Latitude
                             //tp[5]: Lngitude
                             char *p = tp[3];
@@ -449,11 +569,81 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     if(GPIO_Pin == REED_SWITCH_Pin)
     {
         reed_cnt++;
+        flag_reed = true;
     }
     else if(GPIO_Pin == V_USB_Pin)
     {
-
+        flag_v_usb = true;
     }
 
 }
 
+/**
+  * @brief  System Clock Configuration
+  *         The system Clock is configured as follow :
+  *            System Clock source            = (MSI)
+  *            SYSCLK(Hz)                     = 32000
+  *            HCLK(Hz)                       = 32000
+  *            AHB Prescaler                  = 2
+  *            APB1 Prescaler                 = 1
+  *            APB2 Prescaler                 = 1
+  *            Main regulator output voltage  = Scale2 mode
+  * @param  None
+  * @retval None
+  */
+void MSI_Config(void)
+{
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInit;
+
+  /* Enable Power Control clock */
+  __HAL_RCC_PWR_CLK_ENABLE();
+
+  /* The voltage scaling allows optimizing the power consumption when the device is
+     clocked below the maximum system frequency, to update the voltage scaling value
+     regarding system frequency refer to product datasheet.  */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /* Enable MSI Oscillator */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
+  RCC_OscInitStruct.MSICalibrationValue = 0x00;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    /* Initialization Error */
+    Error_Handler();
+  }
+
+
+  /* Select MSI as system clock source and configure the HCLK, PCLK1 and PCLK2
+     clocks dividers */
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    /* Initialization Error */
+    Error_Handler();
+  }
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
+  RCC_OscInitStruct.HSIState = RCC_HSI_OFF;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_OFF;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+	  _Error_Handler(__FILE__, __LINE__);
+  }
+
+  //Disable HSI
+  RCC->CR &= ~(RCC_CR_HSION | RCC_CR_HSIDIVEN);
+
+  /* Set MSI range to 0 */
+  __HAL_RCC_MSI_RANGE_CONFIG(RCC_MSIRANGE_0);
+
+}

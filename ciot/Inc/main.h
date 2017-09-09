@@ -62,7 +62,7 @@
 #define V_USB_EXTI_IRQn EXTI4_15_IRQn
 
 /* USER CODE BEGIN Private defines */
-
+void SystemClock_Config(void);
 /* USER CODE END Private defines */
 
 void _Error_Handler(char *, int);

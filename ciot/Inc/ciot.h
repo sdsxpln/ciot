@@ -16,7 +16,11 @@
 #define SAKURAIO_POWER_ON()  { HAL_GPIO_WritePin(SAKURA_WAKE_IN_GPIO_Port, SAKURA_WAKE_IN_Pin, GPIO_PIN_SET); }
 #define SAKURAIO_POWER_OFF() { HAL_GPIO_WritePin(SAKURA_WAKE_IN_GPIO_Port, SAKURA_WAKE_IN_Pin, GPIO_PIN_RESET); }
 
+#define SENSE_PERIOD 3
+#define THRESHOLD_TRANSMIT_QUEUE_SIZE 20
+
 #define BATTERY_LOW_VOLTAGE 3.35f
+#define SLEEP_TIME  300 //sec
 
 int ciot_init();
 void ciot_main();
