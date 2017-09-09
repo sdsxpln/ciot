@@ -319,7 +319,7 @@ void parse_gps(){
                 gps_line[len-2] = '\0';
                 len -= 2;
 
-                if( gps_line[1] == 'G' && gps_line[2] == 'P' && gps_line[3] == 'R' && gps_line[4] == 'M' && gps_line[5] == 'C' ){
+                if( gps_line[1] == 'G' && (gps_line[2] == 'P' || gps_line[2] == 'N') && gps_line[3] == 'R' && gps_line[4] == 'M' && gps_line[5] == 'C' ){
                     if( is_nmea_valid( gps_line,len) ){
                         char *tp[20];
                         split(gps_line, ',', tp, 20);
