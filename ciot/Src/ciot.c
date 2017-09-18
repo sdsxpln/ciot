@@ -275,7 +275,13 @@ void ciot_main(){
     UARTx->CR1 &= ~(USART_CR1_RXNEIE);
     HAL_UART_DeInit(&huart1);
     GPS_POWER_OFF();
+
+    if( SakuraIO_Command_set_power_save_mode(2) != CMD_ERROR_NONE ){
+    	Error_Handler();
+    }
+    HAL_Delay(5000);
     SAKURAIO_POWER_OFF();
+    BSP_PRESSURE_Sensor_Disable(LPS25HB_P_handle);
     HAL_I2C_DeInit(&hi2c1);
     HAL_RTC_DeInit(&hrtc);
     HAL_ADC_DeInit(&hadc);
@@ -289,11 +295,6 @@ void ciot_main(){
 
     GPIO_InitStruct.Pin = GPS_ENABLE_Pin;
     HAL_GPIO_Init(GPS_ENABLE_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = SAKURA_WAKE_OUT_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(SAKURA_WAKE_OUT_GPIO_Port, &GPIO_InitStruct);
 
     GPIO_InitStruct.Pin = SAKURA_WAKE_OUT_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
